@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSE Demo</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f3f4f6; padding: 2rem; }
+    h2 { margin-bottom: 1rem; color: #111827; }
+    #messages { max-width: 500px; }
+    .message {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #374151;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+    .status { font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; }
+    .dot { display: inline-block; width: 8px; height: 8px; background: #16a34a; border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+
+  <h2>🔴 Live Server Messages</h2>
+  <div class="status"><span class="dot"></span> Connected — waiting for messages...</div>
+  <div id="messages"></div>
+
+  <script>
+    const source = new EventSource('/stream/');
+
+    source.onmessage = function(e) {
+      const div = document.getElementById('messages');
+      const p = document.createElement('div');
+      p.className = 'message';
+      p.textContent = e.data;
+      div.prepend(p); // newest message at top
+    };
+
+    source.onerror = function() {
+      document.querySelector('.status').innerHTML = '🔴 Connection lost — retrying...';
+    };
+  </script>
+
+</body>
+</html>
