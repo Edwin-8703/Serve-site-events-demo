@@ -3,47 +3,239 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SSE Demo</title>
+  <title>SSE Notifications</title>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f3f4f6; padding: 2rem; }
-    h2 { margin-bottom: 1rem; color: #111827; }
-    #messages { max-width: 500px; }
-    .message {
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f3f4f6; min-height: 100vh; padding: 2rem; }
+
+    .navbar {
+      background: #111827;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+    }
+    .navbar-brand { color: #fff; font-weight: 700; font-size: 1.1rem; }
+
+    /* Bell */
+    .bell-wrap { position: relative; cursor: pointer; }
+    .bell { font-size: 1.5rem; }
+    .badge {
+      position: absolute;
+      top: -6px;
+      right: -8px;
+      background: #dc2626;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 1px 5px;
+      min-width: 16px;
+      text-align: center;
+      display: none;
+    }
+    .badge.show { display: block; }
+
+    /* Dropdown */
+    .notif-dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
       background: #fff;
       border: 1px solid #e5e7eb;
-      border-radius: 8px;
+      border-radius: 10px;
+      width: 300px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 999;
+      overflow: hidden;
+    }
+    .notif-dropdown.open { display: block; }
+    .notif-header {
       padding: 0.75rem 1rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #111827;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .notif-header span { color: #6b7280; font-weight: 400; font-size: 0.78rem; cursor: pointer; }
+    .notif-header span:hover { color: #111827; }
+    .notif-list { max-height: 300px; overflow-y: auto; }
+    .notif-item {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      font-size: 0.85rem;
       color: #374151;
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
       animation: fadeIn 0.3s ease;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
-    .status { font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; }
-    .dot { display: inline-block; width: 8px; height: 8px; background: #16a34a; border-radius: 50%; margin-right: 6px; animation: pulse 1.5s infinite; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-item.unread { background: #eff6ff; }
+    .notif-dot { width: 8px; height: 8px; background: #3b82f6; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .notif-text { flex: 1; }
+    .notif-time { font-size: 0.72rem; color: #9ca3af; margin-top: 2px; }
+    .notif-empty { padding: 1.5rem 1rem; text-align: center; color: #9ca3af; font-size: 0.85rem; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+    /* Form */
+    .card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 1.5rem;
+      max-width: 500px;
+    }
+    .card h3 { font-size: 1rem; color: #111827; margin-bottom: 1rem; }
+    .form-row { display: flex; gap: 0.75rem; }
+    .form-row input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      outline: none;
+      font-family: inherit;
+    }
+    .form-row input:focus { border-color: #3b82f6; }
+    .form-row button {
+      padding: 0.5rem 1.2rem;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .form-row button:hover { background: #2563eb; }
+
+    .status { font-size: 0.8rem; color: #6b7280; margin-top: 1rem; display: flex; align-items: center; gap: 0.4rem; }
+    .dot { width: 8px; height: 8px; background: #16a34a; border-radius: 50%; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
   </style>
 </head>
 <body>
 
-  <h2>🔴 Live Server Messages</h2>
-  <div class="status"><span class="dot"></span> Connected — waiting for messages...</div>
-  <div id="messages"></div>
+  <!-- NAVBAR WITH BELL -->
+  <div class="navbar">
+    <div class="navbar-brand">SSE Notifications Demo</div>
+
+    <div class="bell-wrap" id="bellWrap">
+      <div onclick="toggleDropdown()">
+        <span class="bell">🔔</span>
+        <span class="badge" id="badge">0</span>
+      </div>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">
+          Notifications
+          <span onclick="markAllRead()">Mark all read</span>
+        </div>
+        <div class="notif-list" id="notifList">
+          <div class="notif-empty" id="emptyMsg">No notifications yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEND NOTIFICATION FORM -->
+  <div class="card">
+    <h3>📤 Send a Notification</h3>
+    <div class="form-row">
+      <input type="text" id="msgInput" placeholder="Type a notification message...">
+      <button onclick="sendNotification()">Send</button>
+    </div>
+    <div class="status">
+      <div class="dot" id="dot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </div>
 
   <script>
-    const source = new EventSource('/stream/');
+    let unreadCount = 0;
 
-    source.onmessage = function(e) {
-      const div = document.getElementById('messages');
-      const p = document.createElement('div');
-      p.className = 'message';
-      p.textContent = e.data;
-      div.prepend(p); // newest message at top
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('#bellWrap')) {
+        document.getElementById('notifDropdown').classList.remove('open');
+      }
+    });
+
+    function toggleDropdown() {
+      document.getElementById('notifDropdown').classList.toggle('open');
+    }
+
+    function markAllRead() {
+      unreadCount = 0;
+      document.getElementById('badge').textContent = 0;
+      document.getElementById('badge').classList.remove('show');
+      document.querySelectorAll('.notif-item').forEach(i => i.classList.remove('unread'));
+    }
+
+    function sendNotification() {
+      const input = document.getElementById('msgInput');// Get the message from the input field
+      const message = input.value.trim();
+      if (!message) return;// Prevent sending empty messages
+
+      fetch('/notify/', {// Send the message to the server via POST request
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },// Set the content type for form data
+        body: `message=${encodeURIComponent(message)}`// Encode the message to be safely included in the request body
+      });
+
+      input.value = '';
+    }
+
+    // SSE
+    const source = new EventSource('/stream/');//
+
+    source.onopen = function() {
+      document.getElementById('statusText').textContent = 'Connected — listening for notifications';
+    };
+   //Receiving a notification from the server, parsing the data, and updating the UI accordingly. When a new notification is received, it hides the "No notifications yet" message, adds the new notification to the top of the dropdown list, and updates the unread count badge.
+    source.onmessage = function(e) {// When a new notification is received from the server, this function is triggered. It parses the incoming data, updates the notification dropdown with the new message, and increments the unread count badge.
+      const data = JSON.parse(e.data);// Parse the incoming data as JSON
+
+      // Remove empty message
+      document.getElementById('emptyMsg').style.display = 'none';
+
+      // Add to dropdown
+      const list = document.getElementById('notifList');
+      const item = document.createElement('div');// Create a new div element to represent the notification item
+      item.className = 'notif-item unread';// Set the class of the new notification item to include 'unread' for styling purposes
+      item.innerHTML = `
+        <div class="notif-dot"></div>
+        <div class="notif-text">
+          ${data.message}// Insert the notification message into the HTML structure of the notification item
+          <div class="notif-time">${data.time}</div>// Insert the notification time into the HTML structure of the notification item
+        </div>
+      `;
+      list.prepend(item);// Add the new notification item to the top of the notification list in the dropdown
+
+      // Update badge
+      unreadCount++;
+      const badge = document.getElementById('badge');
+      badge.textContent = unreadCount;
+      badge.classList.add('show');
     };
 
     source.onerror = function() {
-      document.querySelector('.status').innerHTML = '🔴 Connection lost — retrying...';
+      document.getElementById('statusText').textContent = 'Connection lost — retrying...';
+      document.getElementById('dot').style.background = '#dc2626';
     };
+
+    // Send on Enter key
+    document.getElementById('msgInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') sendNotification();
+    });
   </script>
 
 </body>

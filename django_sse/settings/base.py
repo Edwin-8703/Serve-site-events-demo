@@ -1,5 +1,5 @@
 from pathlib import Path
-
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 INSTALLED_APPS = [
@@ -9,7 +9,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'my_sse',
+    'my_sse.apps.MySseConfig',
 ]
 
 MIDDLEWARE = [
