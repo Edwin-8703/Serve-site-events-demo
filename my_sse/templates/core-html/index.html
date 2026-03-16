@@ -228,10 +228,16 @@
     };
 
     source.onerror = function() {
-      document.getElementById('statusText').textContent = 'Connection lost — retrying...';
-      document.getElementById('dot').style.background = '#dc2626';
-    };
-
+    document.getElementById('statusText').textContent = 'Reconnecting...';
+    document.getElementById('dot').style.background = '#f59e0b';
+    source.close();
+    // try reconnecting after 3 seconds
+    setTimeout(connectSSE, 3000);
+  };
+  function connectSSE() { // Function to establish a new SSE connection
+    const source = new EventSource('/stream/');
+  }
+ 
     // Send on Enter key
     document.getElementById('msgInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendNotification();

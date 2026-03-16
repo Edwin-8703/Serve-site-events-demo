@@ -30,6 +30,9 @@ def sse_stream(request):#defines a view that will handle the Server-Sent Events 
                 })
                 yield f"data: {data}\n\n"
                 last_id = notification.id
+
+             # keepalive ping — prevents Railway from killing the connection
+            yield ": ping\n\n"
             time.sleep(2)#waits for 2 seconds before checking for new notifications again to avoid overwhelming the server with too many database queries
 
     response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')#returns a StreamingHttpResponse that will continuously stream new notifications to the client as they are created, using the Server-Sent Events protocol. The content type is set to 'text/event-stream' to indicate that this is an SSE stream.
