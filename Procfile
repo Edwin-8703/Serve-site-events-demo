@@ -1,1 +1,1 @@
-web: python manage.py runserver 0.0.0.0:$PORT
+web: gunicorn django_sse.wsgi --workers 3 --timeout 120 --bind 0.0.0.0:$PORT
