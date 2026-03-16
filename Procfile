@@ -1,1 +1,1 @@
-web: gunicorn django_sse.wsgi --worker-class gevent --workers 3 --timeout 300 --bind 0.0.0.0:$PORT
+web: python manage.py migrate && gunicorn django_sse.wsgi --worker-class gevent --workers 3 --timeout 300 --bind 0.0.0.0:$PORT
